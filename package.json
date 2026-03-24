@@ -8,7 +8,7 @@
   "scripts": {
     "start": "node scripts/launch.js",
     "build:win": "electron-builder --win",
-    "build:linux": "electron-builder --linux"
+    "build:linux": "electron-builder --linux AppImage && bash scripts/build-rpm.sh"
   },
   "build": {
     "appId": "cloud.digitis.pc-pilot",

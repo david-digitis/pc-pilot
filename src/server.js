@@ -20,7 +20,7 @@ async function createServer() {
   // Auth hook — skip for routes marked noAuth
   fastify.addHook('onRequest', async (request, reply) => {
     // Skip auth for health check
-    if (request.routeOptions?.url === '/health') return;
+    if (request.routeOptions?.config?.noAuth) return;
 
     await ipFilterMiddleware(request, reply);
     if (reply.sent) return;

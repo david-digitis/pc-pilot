@@ -12,7 +12,11 @@ Built for [Gladys Assistant](https://gladysassistant.com). Works with any system
 
 Download the installer from the [Releases](https://github.com/david-digitis/pc-pilot/releases) page and run it.
 
-PC-Pilot starts in your system tray (bottom-right of your taskbar). Right-click the green **P** icon to access the menu.
+- **Windows**: Run the `.exe` installer.
+- **Linux (Fedora/RHEL)**: Install the `.rpm` with `sudo dnf install pc-pilot-*.rpm`.
+- **Linux (other)**: Run the `.AppImage` directly.
+
+PC-Pilot starts in your system tray. Right-click the green **P** icon to access the menu.
 
 ### 2. Allow your home automation system's IP
 
@@ -26,10 +30,16 @@ Right-click the tray icon > **Allowed IPs** > **Add IP...** and enter the IP add
 
 If your home automation system is on a different machine (which it usually is), you need to allow incoming connections on port 7042.
 
-On Windows, open a terminal as Administrator and run:
+**Windows** — open a terminal as Administrator:
 
 ```bash
 netsh advfirewall firewall add rule name="PC-Pilot" dir=in action=allow protocol=TCP localport=7042
+```
+
+**Linux** — using firewalld (Fedora):
+
+```bash
+sudo firewall-cmd --add-port=7042/tcp --permanent && sudo firewall-cmd --reload
 ```
 
 ### 4. Get your API token
@@ -232,8 +242,10 @@ npm start
 
 ```bash
 npm run build:win      # Windows .exe installer
-npm run build:linux    # Linux .AppImage
+npm run build:linux    # Linux .AppImage + .rpm (Fedora/RHEL)
 ```
+
+> **Linux RPM build requires**: `rpm-build` and `libxcrypt-compat` packages (`sudo dnf install rpm-build libxcrypt-compat`).
 
 ### Tech stack
 

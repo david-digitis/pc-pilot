@@ -7,7 +7,7 @@ Local REST service to control a Windows/Linux PC from a home automation system (
 - **Runtime**: Node.js 22 LTS
 - **API**: Fastify 5.x
 - **Tray**: Electron (tray-only, no window)
-- **Packaging**: electron-builder (.exe Windows, .AppImage Linux)
+- **Packaging**: electron-builder (.exe Windows, .AppImage + .rpm Linux)
 - **Auto-start Windows**: Startup folder shortcut (via PowerShell)
 - **Auto-start Linux**: .desktop file in ~/.config/autostart/
 - **Logger**: pino (JSON structured logging)
@@ -20,6 +20,7 @@ PC-PILOT/
 ├── package.json
 ├── scripts/
 │   ├── launch.js               # Dev launcher (fixes ELECTRON_RUN_AS_NODE)
+│   ├── build-rpm.sh            # RPM builder (Fedora/RHEL, bypasses fpm)
 │   └── generate-icon.js        # Generates icon.ico and icon.png
 ├── src/
 │   ├── server.js               # Fastify server
@@ -173,5 +174,12 @@ action:
 ```bash
 npm start              # Dev (handles VS Code ELECTRON_RUN_AS_NODE)
 npm run build:win      # -> .exe installer in dist/
-npm run build:linux    # -> .AppImage in dist/
+npm run build:linux    # -> .AppImage + .rpm in dist/
 ```
+
+### Linux-specific notes
+
+- **Sandbox**: `app.commandLine.appendSwitch('no-sandbox')` on Linux (avoids suid chrome-sandbox)
+- **RPM build**: electron-builder's bundled fpm is incompatible with RPM 6 (Fedora 43+), so `scripts/build-rpm.sh` builds RPM from `dist/linux-unpacked/` using native `rpmbuild`
+- **RPM requires**: `rpm-build` and `libxcrypt-compat` packages on the build machine
+- **ELECTRON_RUN_AS_NODE**: VS Code terminal sets this env var, which makes packaged Electron binaries run as plain Node.js. The `.desktop` file clears it explicitly

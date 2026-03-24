@@ -2,6 +2,11 @@
 delete process.env.ELECTRON_RUN_AS_NODE;
 
 const { app } = require('electron');
+
+// Linux: avoid needing suid chrome-sandbox
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('no-sandbox');
+}
 const { loadConfig, getConfig, getLocalIP } = require('./src/config');
 const { createServer } = require('./src/server');
 const { initTray } = require('./src/tray');
