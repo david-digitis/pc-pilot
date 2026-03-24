@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const os = require('os');
+const log = require('./logger');
 
 let config = null;
 let configPath = null;
@@ -50,8 +51,8 @@ function loadConfig() {
     const defaults = getDefaults();
     fs.writeFileSync(cfgPath, JSON.stringify(defaults, null, 2));
     config = defaults;
-    console.log(`[Config] Created default config at ${cfgPath}`);
-    console.log(`[Config] API Token: ${config.security.token.substring(0, 8)}...`);
+    log.info({ path: cfgPath }, 'Created default config');
+    log.info({ token: `${config.security.token.substring(0, 8)}...` }, 'API token');
     return config;
   }
 
@@ -65,12 +66,43 @@ function loadConfig() {
     saveConfig();
   }
 
-  console.log(`[Config] Loaded from ${cfgPath}`);
+  log.info({ path: cfgPath }, 'Config loaded');
   return config;
 }
 
 function saveConfig() {
+  ignoreNextWatch = true;
   fs.writeFileSync(getConfigPath(), JSON.stringify(config, null, 2));
+}
+
+let onReloadCallback = null;
+let ignoreNextWatch = false;
+
+function reloadConfig() {
+  try {
+    const raw = fs.readFileSync(getConfigPath(), 'utf8');
+    config = JSON.parse(raw);
+    log.info('Config reloaded');
+    if (onReloadCallback) onReloadCallback();
+    return true;
+  } catch (err) {
+    log.error({ err: err.message }, 'Config reload failed');
+    return false;
+  }
+}
+
+function watchConfig(callback) {
+  onReloadCallback = callback;
+  let debounce = null;
+  fs.watch(getConfigPath(), () => {
+    if (ignoreNextWatch) {
+      ignoreNextWatch = false;
+      return;
+    }
+    clearTimeout(debounce);
+    debounce = setTimeout(() => reloadConfig(), 300);
+  });
+  log.info('Watching config for changes');
 }
 
 function getConfig() {
@@ -96,4 +128,4 @@ function getLocalIP() {
   return '127.0.0.1';
 }
 
-module.exports = { loadConfig, getConfig, saveConfig, regenerateToken, getConfigPath, getConfigDir, getLocalIP };
+module.exports = { loadConfig, getConfig, saveConfig, regenerateToken, reloadConfig, watchConfig, getConfigPath, getConfigDir, getLocalIP };

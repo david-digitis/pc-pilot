@@ -2,6 +2,7 @@ const Fastify = require('fastify');
 const { getConfig } = require('./config');
 const { authMiddleware } = require('./middleware/auth');
 const { ipFilterMiddleware } = require('./middleware/ip-filter');
+const log = require('./logger');
 
 async function createServer() {
   const config = getConfig();
@@ -38,7 +39,7 @@ async function createServer() {
   const port = config.server.port || 7042;
 
   await fastify.listen({ port, host });
-  console.log(`[Server] Listening on http://${host}:${port}`);
+  log.info({ host, port }, 'Server listening');
 
   return fastify;
 }

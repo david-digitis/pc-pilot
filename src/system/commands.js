@@ -1,5 +1,6 @@
 const { execFile } = require('child_process');
 const os = require('os');
+const log = require('../logger');
 
 const isWindows = os.platform() === 'win32';
 
@@ -42,21 +43,21 @@ function executeSystemCommand(commandId) {
     const platform = isWindows ? 'win32' : 'linux';
     const { exe, args } = cmd[platform];
 
-    console.log(`[System] Executing: ${commandId} (${exe} ${args.join(' ')})`);
+    log.info({ command: commandId, exe }, 'Executing system command');
 
     // SECURITY: execFile, NOT exec. No shell interpolation.
     execFile(exe, args, { timeout: 15000, shell: false }, (err, stdout, stderr) => {
       if (err) {
         // Some commands (like shutdown) return non-zero but succeed
         if (commandId === 'shutdown' || commandId === 'reboot' || commandId === 'hibernate') {
-          console.log(`[System] ${commandId} initiated (exit code: ${err.code})`);
+          log.info({ command: commandId, exitCode: err.code }, 'Command initiated');
           return resolve({ success: true, message: `${cmd.label} initiated` });
         }
-        console.error(`[System] ${commandId} failed:`, err.message);
+        log.error({ command: commandId, err: err.message }, 'Command failed');
         return reject(err);
       }
 
-      console.log(`[System] ${commandId} OK`);
+      log.info({ command: commandId }, 'Command OK');
       resolve({ success: true, message: cmd.label });
     });
   });

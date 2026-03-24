@@ -1,6 +1,7 @@
 const { spawn, execFile } = require('child_process');
 const os = require('os');
 const { getConfig } = require('../config');
+const log = require('../logger');
 
 const isWindows = os.platform() === 'win32';
 
@@ -17,7 +18,7 @@ function launchApp(appId) {
     ? (app.args[platform] || [])
     : (app.args || []);
 
-  console.log(`[Apps] Launching: ${appId} (${appPath})`);
+  log.info({ app: appId, path: appPath }, 'Launching app');
 
   const proc = spawn(appPath, args, {
     detached: true,

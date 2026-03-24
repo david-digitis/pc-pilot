@@ -1,5 +1,7 @@
 const { Tray, Menu, clipboard, nativeImage } = require('electron');
-const { getConfig, regenerateToken, getConfigPath, getLocalIP } = require('./config');
+const { getConfig, regenerateToken, reloadConfig, watchConfig, getConfigPath, getLocalIP } = require('./config');
+const { isEnabled: isAutostartEnabled, toggle: toggleAutostart } = require('./system/autostart');
+const log = require('./logger');
 
 let tray = null;
 
@@ -32,6 +34,8 @@ function initTray(app) {
 
   updateMenu();
   tray.setToolTip('PC-Pilot — Service running');
+
+  watchConfig(() => updateMenu());
 
   return tray;
 }
@@ -74,14 +78,14 @@ function updateMenu() {
       label: 'Copy API token',
       click: () => {
         clipboard.writeText(config.security.token);
-        console.log('[Tray] Token copied to clipboard');
+        log.info('Token copied to clipboard');
       },
     },
     {
       label: 'Copy service URL',
       click: () => {
         clipboard.writeText(baseUrl);
-        console.log('[Tray] URL copied to clipboard');
+        log.info('URL copied to clipboard');
       },
     },
     { type: 'separator' },
@@ -98,12 +102,28 @@ function updateMenu() {
       },
     },
     {
+      label: 'Reload configuration',
+      click: () => {
+        reloadConfig();
+        updateMenu();
+        log.info('Configuration reloaded from tray');
+      },
+    },
+    {
       label: 'Regenerate API token',
       click: () => {
         const newToken = regenerateToken();
         clipboard.writeText(newToken);
         updateMenu();
-        console.log('[Tray] Token regenerated and copied');
+        log.info('Token regenerated and copied');
+      },
+    },
+    { type: 'separator' },
+    {
+      label: `Start with system ${isAutostartEnabled() ? '(on)' : '(off)'}`,
+      click: async () => {
+        await toggleAutostart();
+        updateMenu();
       },
     },
     { type: 'separator' },

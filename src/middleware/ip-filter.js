@@ -1,4 +1,5 @@
 const { getConfig } = require('../config');
+const log = require('../logger');
 
 async function ipFilterMiddleware(request, reply) {
   const config = getConfig();
@@ -10,7 +11,7 @@ async function ipFilterMiddleware(request, reply) {
   const clientIP = request.ip.replace('::ffff:', '');
 
   if (!allowedIPs.includes(clientIP)) {
-    console.warn(`[IPFilter] REJECTED ip=${clientIP} path=${request.url}`);
+    log.warn({ ip: clientIP, path: request.url }, 'IP rejected');
     return reply.code(403).send({ success: false, error: 'Forbidden' });
   }
 }

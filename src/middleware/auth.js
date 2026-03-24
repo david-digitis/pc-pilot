@@ -1,12 +1,13 @@
 const crypto = require('crypto');
 const { getConfig } = require('../config');
+const log = require('../logger');
 
 async function authMiddleware(request, reply) {
   const authHeader = request.headers.authorization || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
 
   if (!token) {
-    console.warn(`[Auth] MISSING ip=${request.ip} path=${request.url}`);
+    log.warn({ ip: request.ip, path: request.url }, 'Auth missing token');
     return reply.code(401).send({ success: false, error: 'Unauthorized' });
   }
 
@@ -15,7 +16,7 @@ async function authMiddleware(request, reply) {
   const provided = Buffer.from(token);
 
   if (expected.length !== provided.length || !crypto.timingSafeEqual(expected, provided)) {
-    console.warn(`[Auth] FAILED ip=${request.ip} path=${request.url}`);
+    log.warn({ ip: request.ip, path: request.url }, 'Auth failed');
     return reply.code(401).send({ success: false, error: 'Unauthorized' });
   }
 }

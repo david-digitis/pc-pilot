@@ -1,6 +1,7 @@
 const { execFile } = require('child_process');
 const os = require('os');
 const { getConfig } = require('../config');
+const log = require('../logger');
 
 const isWindows = os.platform() === 'win32';
 
@@ -12,7 +13,7 @@ async function commandsRoutes(fastify) {
     const config = getConfig();
     const cmd = config.commands?.find(c => c.id === id);
     if (!cmd) {
-      console.warn(`[Commands] UNKNOWN id=${id} ip=${request.ip}`);
+      log.warn({ id, ip: request.ip }, 'Unknown command');
       return reply.code(400).send({ success: false, error: `Unknown command: ${id}` });
     }
 
@@ -28,12 +29,12 @@ async function commandsRoutes(fastify) {
     }
 
     return new Promise((resolve) => {
-      console.log(`[Commands] Executing: ${id} (${exe})`);
+      log.info({ id, exe }, 'Executing command');
 
       // SECURITY: execFile with shell: false
       execFile(exe, args, { timeout, shell: false }, (err, stdout, stderr) => {
         if (err) {
-          console.error(`[Commands] ${id} failed:`, err.message);
+          log.error({ id, err: err.message }, 'Command failed');
           resolve(reply.code(500).send({
             success: false,
             error: `Command failed: ${err.message}`,
@@ -42,7 +43,7 @@ async function commandsRoutes(fastify) {
           return;
         }
 
-        console.log(`[Commands] ${id} OK`);
+        log.info({ id }, 'Command OK');
         resolve({
           success: true,
           data: { id, label: cmd.label || id, output: stdout.trim() },
