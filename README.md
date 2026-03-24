@@ -165,7 +165,7 @@ trigger: voice_command "turn off the pc"
 action:
   type: http_request
   method: POST
-  url: http://192.168.10.68:7042/api/v1/system/shutdown
+  url: http://192.168.1.100:7042/api/v1/system/shutdown
   headers:
     Authorization: Bearer <token>
     Content-Type: application/json
@@ -178,7 +178,7 @@ trigger: user_left_home
 action:
   type: http_request
   method: POST
-  url: http://192.168.10.68:7042/api/v1/system/lock
+  url: http://192.168.1.100:7042/api/v1/system/lock
   headers:
     Authorization: Bearer <token>
     Content-Type: application/json
