@@ -1,9 +1,91 @@
-const { Tray, Menu, clipboard, nativeImage } = require('electron');
-const { getConfig, regenerateToken, reloadConfig, watchConfig, getConfigPath, getLocalIP } = require('./config');
+const { Tray, Menu, clipboard, nativeImage, BrowserWindow, ipcMain } = require('electron');
+const { getConfig, saveConfig, regenerateToken, reloadConfig, watchConfig, getConfigPath, getLocalIP } = require('./config');
 const { isEnabled: isAutostartEnabled, toggle: toggleAutostart } = require('./system/autostart');
 const log = require('./logger');
 
 let tray = null;
+let promptWindow = null;
+
+function promptForIP() {
+  return new Promise((resolve) => {
+    if (promptWindow) {
+      promptWindow.focus();
+      return resolve(null);
+    }
+
+    promptWindow = new BrowserWindow({
+      width: 380,
+      height: 180,
+      resizable: false,
+      minimizable: false,
+      maximizable: false,
+      alwaysOnTop: true,
+      skipTaskbar: true,
+      title: 'PC-Pilot — Add allowed IP',
+      webPreferences: { nodeIntegration: true, contextIsolation: false },
+    });
+
+    promptWindow.setMenuBarVisibility(false);
+
+    const html = `<!DOCTYPE html>
+<html><head><style>
+  body { font-family: Segoe UI, sans-serif; background: #1e1e2e; color: #cdd6f4; padding: 16px; margin: 0; }
+  input { width: 100%; padding: 8px; font-size: 15px; border: 1px solid #45475a; border-radius: 6px; background: #313244; color: #cdd6f4; box-sizing: border-box; outline: none; }
+  input:focus { border-color: #22c55e; }
+  .btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+  button { padding: 8px 20px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  .ok { background: #22c55e; color: #1e1e2e; font-weight: 600; }
+  .cancel { background: #45475a; color: #cdd6f4; }
+</style></head><body>
+  <label>IP address to allow:</label><br><br>
+  <input id="ip" type="text" placeholder="192.168.1.50" autofocus>
+  <div class="btns">
+    <button class="cancel" onclick="cancel()">Cancel</button>
+    <button class="ok" onclick="submit()">Add</button>
+  </div>
+  <script>
+    const { ipcRenderer } = require('electron');
+    const input = document.getElementById('ip');
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') cancel(); });
+    function submit() { const v = input.value.trim(); if (v) ipcRenderer.send('prompt-ip-result', v); }
+    function cancel() { ipcRenderer.send('prompt-ip-result', null); }
+  </script>
+</body></html>`;
+
+    promptWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+
+    ipcMain.once('prompt-ip-result', (_, ip) => {
+      promptWindow.close();
+      resolve(ip);
+    });
+
+    promptWindow.on('closed', () => {
+      promptWindow = null;
+      resolve(null);
+    });
+  });
+}
+
+function addAllowedIP(ip) {
+  const config = getConfig();
+  if (!Array.isArray(config.security.allowedIPs)) {
+    config.security.allowedIPs = [];
+  }
+  if (!config.security.allowedIPs.includes(ip)) {
+    config.security.allowedIPs.push(ip);
+    saveConfig();
+    updateMenu();
+    log.info({ ip }, 'Allowed IP added');
+  }
+}
+
+function removeAllowedIP(ip) {
+  const config = getConfig();
+  config.security.allowedIPs = (config.security.allowedIPs || []).filter(i => i !== ip);
+  saveConfig();
+  updateMenu();
+  log.info({ ip }, 'Allowed IP removed');
+}
 
 function createTrayIcon(color) {
   const size = 16;
@@ -87,6 +169,26 @@ function updateMenu() {
         clipboard.writeText(baseUrl);
         log.info('URL copied to clipboard');
       },
+    },
+    { type: 'separator' },
+    {
+      label: 'Allowed IPs',
+      submenu: [
+        ...(config.security.allowedIPs || []).map(ip => ({
+          label: ip,
+          submenu: [
+            { label: 'Remove', click: () => removeAllowedIP(ip) },
+          ],
+        })),
+        { type: 'separator' },
+        {
+          label: 'Add IP...',
+          click: async () => {
+            const ip = await promptForIP();
+            if (ip) addAllowedIP(ip);
+          },
+        },
+      ],
     },
     { type: 'separator' },
     {
