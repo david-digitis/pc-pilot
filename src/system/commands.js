@@ -6,27 +6,27 @@ const isWindows = os.platform() === 'win32';
 // Built-in system commands — cross-platform
 const SYSTEM_COMMANDS = {
   shutdown: {
-    label: 'Eteindre le PC',
-    win32: { exe: 'shutdown', args: ['/s', '/t', '5', '/c', 'Arret demande par PC-Pilot'] },
+    label: 'Shut down',
+    win32: { exe: 'shutdown', args: ['/s', '/t', '5', '/c', 'Shutdown requested by PC-Pilot'] },
     linux: { exe: 'systemctl', args: ['poweroff'] },
   },
   reboot: {
-    label: 'Redemarrer le PC',
-    win32: { exe: 'shutdown', args: ['/r', '/t', '5', '/c', 'Redemarrage demande par PC-Pilot'] },
+    label: 'Reboot',
+    win32: { exe: 'shutdown', args: ['/r', '/t', '5', '/c', 'Reboot requested by PC-Pilot'] },
     linux: { exe: 'systemctl', args: ['reboot'] },
   },
   sleep: {
-    label: 'Mise en veille',
+    label: 'Sleep',
     win32: { exe: 'powershell.exe', args: ['-NonInteractive', '-Command', 'Add-Type -Assembly System.Windows.Forms; [System.Windows.Forms.Application]::SetSuspendState("Suspend", $false, $false)'] },
     linux: { exe: 'systemctl', args: ['suspend'] },
   },
   hibernate: {
-    label: 'Hibernation',
+    label: 'Hibernate',
     win32: { exe: 'shutdown', args: ['/h'] },
     linux: { exe: 'systemctl', args: ['hibernate'] },
   },
   lock: {
-    label: 'Verrouiller la session',
+    label: 'Lock session',
     win32: { exe: 'rundll32.exe', args: ['user32.dll,LockWorkStation'] },
     linux: { exe: 'loginctl', args: ['lock-session'] },
   },
@@ -50,7 +50,7 @@ function executeSystemCommand(commandId) {
         // Some commands (like shutdown) return non-zero but succeed
         if (commandId === 'shutdown' || commandId === 'reboot' || commandId === 'hibernate') {
           console.log(`[System] ${commandId} initiated (exit code: ${err.code})`);
-          return resolve({ success: true, message: `${cmd.label} initie` });
+          return resolve({ success: true, message: `${cmd.label} initiated` });
         }
         console.error(`[System] ${commandId} failed:`, err.message);
         return reject(err);

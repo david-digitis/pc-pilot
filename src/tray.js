@@ -31,7 +31,7 @@ function initTray(app) {
   tray = new Tray(icon);
 
   updateMenu();
-  tray.setToolTip('PC-Pilot — Service actif');
+  tray.setToolTip('PC-Pilot — Service running');
 
   return tray;
 }
@@ -71,14 +71,14 @@ function updateMenu() {
     { label: `PC-Pilot — ${baseUrl}`, enabled: false },
     { type: 'separator' },
     {
-      label: 'Copier le token API',
+      label: 'Copy API token',
       click: () => {
         clipboard.writeText(config.security.token);
         console.log('[Tray] Token copied to clipboard');
       },
     },
     {
-      label: 'Copier l\'URL du service',
+      label: 'Copy service URL',
       click: () => {
         clipboard.writeText(baseUrl);
         console.log('[Tray] URL copied to clipboard');
@@ -86,19 +86,19 @@ function updateMenu() {
     },
     { type: 'separator' },
     {
-      label: 'Endpoints (clic = copier curl)',
+      label: 'Endpoints (click = copy curl)',
       submenu: endpointItems,
     },
     { type: 'separator' },
     {
-      label: 'Ouvrir la configuration',
+      label: 'Open configuration',
       click: () => {
         const { shell } = require('electron');
         shell.openPath(getConfigPath());
       },
     },
     {
-      label: 'Regenerer le token API',
+      label: 'Regenerate API token',
       click: () => {
         const newToken = regenerateToken();
         clipboard.writeText(newToken);
@@ -108,7 +108,7 @@ function updateMenu() {
     },
     { type: 'separator' },
     {
-      label: 'Quitter',
+      label: 'Quit',
       click: () => {
         const { app } = require('electron');
         app.quit();

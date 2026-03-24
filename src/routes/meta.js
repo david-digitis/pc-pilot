@@ -38,7 +38,7 @@ async function metaRoutes(fastify) {
     endpoints.push({
       method: 'GET',
       path: '/api/v1/system/status',
-      label: 'Statut systeme',
+      label: 'System status',
       curl: `curl ${baseUrl}/api/v1/system/status -H "Authorization: Bearer ${token}"`,
     });
 
@@ -48,7 +48,7 @@ async function metaRoutes(fastify) {
       endpoints.push({
         method: 'POST',
         path: '/api/v1/apps/launch',
-        label: `Lancer ${app.label || app.id}`,
+        label: `Launch ${app.label || app.id}`,
         body: { id: app.id },
         curl: `curl -X POST ${baseUrl}/api/v1/apps/launch -H "Authorization: Bearer ${token}" -H "Content-Type: application/json" -d "{\\"id\\":\\"${app.id}\\"}"`,
       });
