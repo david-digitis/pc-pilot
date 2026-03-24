@@ -1,3 +1,6 @@
+// Must be before require('electron') — VS Code terminal sets this
+delete process.env.ELECTRON_RUN_AS_NODE;
+
 const { app } = require('electron');
 const { loadConfig, getConfig, getLocalIP } = require('./src/config');
 const { createServer } = require('./src/server');

@@ -1,52 +1,132 @@
 # PC-Pilot
 
-Local REST service to control a Windows/Linux PC from a home automation system.
+Control your PC from your home automation system — shut down, reboot, sleep, lock, launch apps, and more.
 
-Built for [Gladys Assistant](https://gladysassistant.com), compatible with any system that can send HTTP requests.
+Built for [Gladys Assistant](https://gladysassistant.com). Works with any system that can send HTTP requests.
 
-## Features
+![PC-Pilot tray menu](doc/tray-menu.png)
 
-- **System commands**: shutdown, reboot, sleep, hibernate, lock
-- **App launcher**: start/stop configured applications
-- **Custom commands**: run pre-configured scripts (backup, etc.)
-- **System tray**: tray icon with quick access to all features
-- **Security**: API token, IP whitelist, rate limiting
+## Quick start
 
-## Installation
+### 1. Install and launch
 
-### Requirements
+Download the installer from the [Releases](https://github.com/david-digitis/pc-pilot/releases) page and run it.
 
-- [Node.js 22 LTS](https://nodejs.org/)
+PC-Pilot starts in your system tray (bottom-right of your taskbar). Right-click the green **P** icon to access the menu.
 
-### Development
+### 2. Allow your home automation system's IP
+
+Your home automation system needs permission to talk to PC-Pilot.
+
+Right-click the tray icon > **Allowed IPs** > **Add IP...** and enter the IP address of your Gladys (or other system).
+
+![Managing allowed IPs](doc/tray-allowed-ips.png)
+
+### 3. Open the port in your firewall
+
+If your home automation system is on a different machine (which it usually is), you need to allow incoming connections on port 7042.
+
+On Windows, open a terminal as Administrator and run:
 
 ```bash
-git clone https://github.com/david-digitis/pc-pilot.git
-cd pc-pilot
-npm install
-npm start
+netsh advfirewall firewall add rule name="PC-Pilot" dir=in action=allow protocol=TCP localport=7042
 ```
 
-On first launch, a configuration file is created automatically:
-- **Windows**: `%APPDATA%/pc-pilot/config.json`
+### 4. Get your API token
+
+Right-click the tray icon > **Copy API token**. You'll need it to authenticate requests.
+
+### 5. Set up a scene in Gladys
+
+In Gladys, create a scene with the action **Make an HTTP request**:
+
+- **Method**: `POST`
+- **URL**: `http://<your-pc-ip>:7042/api/v1/system/lock`
+- **Headers**:
+  - `Authorization` = `Bearer <your-token>`
+  - `Content-Type` = `application/json`
+- **Body**: `{}`
+
+> **Note**: the `{}` body is required even for commands that don't need one.
+
+![Gladys HTTP request configuration](doc/config-gladys-http.png)
+
+Replace `/system/lock` with any command from the list below.
+
+## Available commands
+
+| Action | URL path | What it does |
+| ------ | -------- | ------------ |
+| Shut down | `/api/v1/system/shutdown` | Shuts down the PC (5 second delay) |
+| Reboot | `/api/v1/system/reboot` | Restarts the PC |
+| Sleep | `/api/v1/system/sleep` | Puts the PC to sleep |
+| Hibernate | `/api/v1/system/hibernate` | Hibernates the PC |
+| Lock | `/api/v1/system/lock` | Locks the session |
+| System status | `/api/v1/system/status` | Returns uptime, RAM, CPU info (GET) |
+| Health check | `/api/v1/health` | Check if PC-Pilot is running (GET, no auth needed) |
+
+## Tray menu
+
+Everything is managed from the tray icon — no config file editing required for basic usage.
+
+![Tray menu with endpoints](doc/tray-endpoints.png)
+
+| Menu item | What it does |
+| --------- | ------------ |
+| **Copy API token** | Copies the token to your clipboard |
+| **Copy service URL** | Copies the base URL (e.g. `http://192.168.1.100:7042`) |
+| **Allowed IPs** | Add or remove IPs that can access the API |
+| **Endpoints** | Click any endpoint to copy a ready-to-use curl command |
+| **Open configuration** | Opens the config file for advanced settings |
+| **Reload configuration** | Reloads config without restarting |
+| **Regenerate API token** | Creates a new token (invalidates the old one) |
+| **Start with system** | Toggle auto-start on login |
+
+## Scene examples for Gladys
+
+**"Turn off the PC" by voice:**
+
+| Field | Value |
+| ----- | ----- |
+| Method | `POST` |
+| URL | `http://<pc-ip>:7042/api/v1/system/shutdown` |
+| Header | `Authorization` = `Bearer <token>` |
+| Header | `Content-Type` = `application/json` |
+| Body | `{}` |
+
+**Lock PC when leaving home:**
+
+Same as above, but with URL: `http://<pc-ip>:7042/api/v1/system/lock`
+
+**Wake up a specific app:**
+
+| Field | Value |
+| ----- | ----- |
+| Method | `POST` |
+| URL | `http://<pc-ip>:7042/api/v1/apps/launch` |
+| Header | `Authorization` = `Bearer <token>` |
+| Header | `Content-Type` = `application/json` |
+| Body | `{ "id": "firefox" }` |
+
+> Apps must be configured in the config file first — see the Advanced section below.
+
+---
+
+## Advanced configuration
+
+The config file is located at:
+
+- **Windows**: `%APPDATA%\pc-pilot\config.json`
 - **Linux**: `~/.config/pc-pilot/config.json`
 
-An API token is generated automatically. You can copy it from the tray menu (right-click the icon).
+You can open it from the tray menu > **Open configuration**. Changes are detected automatically.
 
-## Configuration
+### Adding apps
 
-### config.json
+Add entries to the `apps` array to launch/kill applications via the API:
 
 ```json
 {
-  "server": {
-    "port": 7042,
-    "host": "0.0.0.0"
-  },
-  "security": {
-    "token": "your-auto-generated-token",
-    "allowedIPs": ["127.0.0.1", "::1", "192.168.1.50"]
-  },
   "apps": [
     {
       "id": "firefox",
@@ -55,12 +135,29 @@ An API token is generated automatically. You can copy it from the tray menu (rig
         "win32": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
         "linux": "/usr/bin/firefox"
       }
+    },
+    {
+      "id": "vlc",
+      "label": "VLC",
+      "path": {
+        "win32": "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe",
+        "linux": "/usr/bin/vlc"
+      }
     }
-  ],
+  ]
+}
+```
+
+### Adding custom commands
+
+Add entries to the `commands` array to run scripts or tools:
+
+```json
+{
   "commands": [
     {
       "id": "backup-nas",
-      "label": "Backup NAS",
+      "label": "Backup to NAS",
       "command": { "win32": "robocopy", "linux": "rsync" },
       "args": {
         "win32": ["C:\\Users\\David\\Documents", "\\\\NAS\\backup"],
@@ -72,144 +169,76 @@ An API token is generated automatically. You can copy it from the tray menu (rig
 }
 ```
 
-### allowedIPs
+Then call them with `POST /api/v1/commands/execute` and body `{ "id": "backup-nas" }`.
 
-List of IP addresses allowed to contact the API. **Must be an array.**
+### Full API reference
 
-Add at minimum:
-- `127.0.0.1` and `::1` (localhost)
-- Your home automation system's IP (e.g. `192.168.10.200`)
-- Your PC's LAN IP if you test locally via network IP
+All routes require the `Authorization: Bearer <token>` header unless noted.
 
-> If the array is empty, all IPs are allowed (not recommended).
-
-### Firewall
-
-If your home automation system runs on a different machine, open the port in Windows Firewall:
-
-```bash
-netsh advfirewall firewall add rule name="PC-Pilot" dir=in action=allow protocol=TCP localport=7042 remoteip=192.168.10.200
-```
-
-Replace `192.168.10.200` with your home automation system's IP.
-
-## API
-
-Base URL: `http://<IP>:7042/api/v1`
-
-All routes (except `/health`) require the header:
-```
-Authorization: Bearer <your-token>
-```
-
-### System
+#### System
 
 | Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/v1/system/shutdown` | Shut down the PC (5s delay) |
-| POST | `/api/v1/system/reboot` | Reboot the PC |
-| POST | `/api/v1/system/sleep` | Suspend / sleep |
+| ------ | -------- | ----------- |
+| POST | `/api/v1/system/shutdown` | Shut down (5s delay) |
+| POST | `/api/v1/system/reboot` | Reboot |
+| POST | `/api/v1/system/sleep` | Sleep |
 | POST | `/api/v1/system/hibernate` | Hibernate |
-| POST | `/api/v1/system/lock` | Lock the session |
-| GET | `/api/v1/system/status` | System info (uptime, RAM, CPU) |
+| POST | `/api/v1/system/lock` | Lock session |
+| GET | `/api/v1/system/status` | System info |
 
-### Applications
+#### Applications
 
 | Method | Endpoint | Body | Description |
-|--------|----------|------|-------------|
-| POST | `/api/v1/apps/launch` | `{ "id": "firefox" }` | Launch a configured app |
-| POST | `/api/v1/apps/kill` | `{ "id": "firefox" }` | Kill a running app |
+| ------ | -------- | ---- | ----------- |
+| POST | `/api/v1/apps/launch` | `{ "id": "..." }` | Launch an app |
+| POST | `/api/v1/apps/kill` | `{ "id": "..." }` | Kill an app |
 | GET | `/api/v1/apps/registered` | — | List configured apps |
 
-### Custom commands
+#### Custom commands
 
 | Method | Endpoint | Body | Description |
-|--------|----------|------|-------------|
-| POST | `/api/v1/commands/execute` | `{ "id": "backup-nas" }` | Run a configured command |
-| GET | `/api/v1/commands/list` | — | List available commands |
+| ------ | -------- | ---- | ----------- |
+| POST | `/api/v1/commands/execute` | `{ "id": "..." }` | Run a command |
+| GET | `/api/v1/commands/list` | — | List commands |
 
-### Meta
+#### Meta
 
 | Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
+| ------ | -------- | ---- | ----------- |
 | GET | `/api/v1/health` | No | Health check |
-| GET | `/api/v1/endpoints` | Yes | List all endpoints with curl examples |
-
-## Gladys Assistant Integration
-
-### 1. Get the token
-
-Right-click the PC-Pilot tray icon > **Copy API token**.
-
-### 2. Create a scene
-
-In Gladys, create a scene with the **Make an HTTP request** action:
-
-| Field | Value |
-|-------|-------|
-| **Method** | `POST` |
-| **URL** | `http://<PC-IP>:7042/api/v1/system/lock` |
-| **Header 1** | `Authorization` : `Bearer <your-token>` |
-| **Header 2** | `Content-Type` : `application/json` |
-| **Body** | `{}` |
-
-> **Important**: the `{}` body is required even for commands that don't need one. Without it, Gladys will return an error.
-
-![Gladys HTTP request configuration](doc/config-gladys-http.png)
-
-### 3. Scene examples
-
-**Shut down PC by voice command:**
-```yaml
-trigger: voice_command "turn off the pc"
-action:
-  type: http_request
-  method: POST
-  url: http://192.168.1.100:7042/api/v1/system/shutdown
-  headers:
-    Authorization: Bearer <token>
-    Content-Type: application/json
-  body: {}
-```
-
-**Lock PC when leaving home:**
-```yaml
-trigger: user_left_home
-action:
-  type: http_request
-  method: POST
-  url: http://192.168.1.100:7042/api/v1/system/lock
-  headers:
-    Authorization: Bearer <token>
-    Content-Type: application/json
-  body: {}
-```
-
-## Tray menu
-
-The tray icon gives access to:
-- Copy API token
-- Copy service URL
-- Copy curl commands for each endpoint
-- Open configuration file
-- Regenerate API token
+| GET | `/api/v1/endpoints` | Yes | All endpoints with curl examples |
 
 ## Security
 
-- **API token**: 256-bit, constant-time comparison (`timingSafeEqual`)
-- **IP whitelist**: only configured IPs can reach the API
-- **Command whitelist**: the API receives an identifier, never a shell command
-- **execFile**: no shell interpretation (`shell: false`), no injection possible
+PC-Pilot is designed to run on a local network. It is **not** meant to be exposed to the internet.
+
+- **API token**: 256-bit, constant-time comparison to prevent timing attacks
+- **IP whitelist**: only IPs you explicitly allow can reach the API
+- **Command whitelist**: the API only accepts identifiers, never raw shell commands
+- **No shell execution**: all commands use `execFile` with `shell: false`
 - **Rate limiting**: 30 requests/minute per IP
-- **No CORS**: built-in CSRF protection
+- **No CORS**: prevents browser-based attacks from other websites
 
-## Tech stack
+## Development
 
-- **Runtime**: Node.js 22 LTS
-- **API**: Fastify 5
-- **Tray**: Electron (tray-only mode)
-- **Packaging**: electron-builder
+```bash
+git clone https://github.com/david-digitis/pc-pilot.git
+cd pc-pilot
+npm install
+npm start
+```
+
+### Build
+
+```bash
+npm run build:win      # Windows .exe installer
+npm run build:linux    # Linux .AppImage
+```
+
+### Tech stack
+
+- Node.js 22 LTS / Fastify 5 / Electron (tray-only) / pino logger
 
 ## License
 
-MIT
+MIT — [Digitis](https://digitis.cloud)

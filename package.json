@@ -6,8 +6,7 @@
   "author": "Digitis <david@digitis.cloud>",
   "license": "MIT",
   "scripts": {
-    "start": "set ELECTRON_RUN_AS_NODE= && electron .",
-    "start:bash": "unset ELECTRON_RUN_AS_NODE && electron .",
+    "start": "node scripts/launch.js",
     "build:win": "electron-builder --win",
     "build:linux": "electron-builder --linux"
   },

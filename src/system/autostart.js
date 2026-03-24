@@ -32,8 +32,12 @@ function enable() {
     const ps = `$s=(New-Object -COM WScript.Shell).CreateShortcut('${lnkPath.replace(/'/g, "''")}');$s.TargetPath='${target.replace(/'/g, "''")}';$s.WorkingDirectory='${appDir.replace(/'/g, "''")}';$s.Save()`;
 
     return new Promise((resolve, reject) => {
-      execFile('powershell.exe', ['-NonInteractive', '-Command', ps], { shell: false }, (err) => {
-        if (err) return reject(err);
+      log.info({ target, lnkPath }, 'Creating startup shortcut');
+      execFile('powershell.exe', ['-NonInteractive', '-Command', ps], { shell: false }, (err, stdout, stderr) => {
+        if (err) {
+          log.error({ err: err.message, stderr }, 'Failed to create startup shortcut');
+          return reject(err);
+        }
         log.info('Autostart enabled');
         resolve(true);
       });

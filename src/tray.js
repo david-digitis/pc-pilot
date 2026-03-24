@@ -224,7 +224,11 @@ function updateMenu() {
     {
       label: `Start with system ${isAutostartEnabled() ? '(on)' : '(off)'}`,
       click: async () => {
-        await toggleAutostart();
+        try {
+          await toggleAutostart();
+        } catch (err) {
+          log.error({ err: err.message }, 'Autostart toggle failed');
+        }
         updateMenu();
       },
     },
