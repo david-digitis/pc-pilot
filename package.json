@@ -1,0 +1,36 @@
+{
+  "name": "pc-pilot",
+  "version": "0.1.0",
+  "description": "Service REST local pour controler un PC depuis un systeme domotique",
+  "main": "main.js",
+  "author": "Digitis <david@digitis.cloud>",
+  "license": "MIT",
+  "scripts": {
+    "start": "set ELECTRON_RUN_AS_NODE= && electron .",
+    "start:bash": "unset ELECTRON_RUN_AS_NODE && electron .",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux"
+  },
+  "build": {
+    "appId": "cloud.digitis.pc-pilot",
+    "productName": "PC-Pilot",
+    "directories": { "output": "dist" },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "category": "Utility",
+      "icon": "assets/icon.png"
+    }
+  },
+  "dependencies": {
+    "fastify": "^5.2.0",
+    "@fastify/rate-limit": "^10.2.0"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.0.0"
+  }
+}
